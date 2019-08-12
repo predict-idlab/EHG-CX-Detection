@@ -104,7 +104,7 @@ for train_files, test_files in folds:
 
     # Evaluate predictions for this fold
     for file in np.unique(all_test_files):
-        auc, ious = evaluate(DATA_DIR + '/' + file, pd.read_csv(OUTPUT_DIR+'/test/{}.csv'.format(file)))
+        auc, ious = evaluate(DATA_DIR + '/' + file, pd.read_csv(OUTPUT_DIR+'/test/{}.csv'.format(file), header=None)[1].values)
         print(file)
         print('AUC = {}'.format(auc))
         print('IoUs = {}'.format(ious))

@@ -16,4 +16,4 @@ Run `pip -r requirements.txt`
 
 # Running it
 
-Set your parameters in config.json and run `python3 pipeline.py`. The output will be saved in the `output/` directory.
+Set your parameters in `config.json` and run `python3 pipeline.py`. The output will be saved in the `output/` directory.

@@ -47,8 +47,6 @@ def average_iou(real_segments, predicted_segments):
 def calculate_auc(intervals, predictions):
     preds = []
     labels = []
-    print(intervals)
-    print(predictions.shape)
     for (start_idx, start_type), (end_idx, end_type) in zip(intervals[::2], intervals[1::2]):
         if start_type[-1] == 'C':
             labels.extend([1]*(end_idx - start_idx))
@@ -124,7 +122,7 @@ def evaluate(file, predictions):
     ious = []
     for thresh in np.arange(0.05, 1.0, 0.05):
         pred_segments = find_intervals(predictions, thresh=thresh)
-        ious.append(average_iou(real_segments, predicted_segment))
+        ious.append(average_iou(real_segments, pred_segments))
 
     return auc, ious
 
@@ -139,7 +137,7 @@ def evaluate_all(files, prediction_path, OUTPUT_DIR):
 
     for file in files:
         signal_ch1, signal_ch2, signal_ch3, annotated_intervals = read_signal(file)
-        predictions = pd.read_csv(prediction_path+'/{}.csv'.format(file))
+        predictions = pd.read_csv(prediction_path+'/{}.csv'.format(file), header=None)[1].values
         for (start_idx, start_type), (end_idx, end_type) in zip(intervals[::2], intervals[1::2]):
             if start_type[-1] == 'C':
                 labels.extend([1]*(end_idx - start_idx))
@@ -150,7 +148,7 @@ def evaluate_all(files, prediction_path, OUTPUT_DIR):
 
         for i, thresh in enumerate(np.arange(0.05, 1.0, 0.05)):
             pred_segments = find_intervals(predictions, thresh=thresh)
-            ious[i].append(average_iou(real_segments, predicted_segment))
+            ious[i].append(average_iou(real_segments, pred_segments))
 
     print('AUC = {}'.format(roc_auc_score(labels, preds)))
 

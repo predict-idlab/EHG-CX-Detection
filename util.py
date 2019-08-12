@@ -24,9 +24,6 @@ def partition_data(directory, n_splits=3):
     np.random.shuffle(p_files)
     np.random.shuffle(t_files)
 
-    p_files = p_files[:3]
-    t_files = t_files[:3]
-
     folds = []
     for split in range(n_splits):
         start = lambda x: int(x * (split / n_splits))
