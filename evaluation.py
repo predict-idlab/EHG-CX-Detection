@@ -1,7 +1,10 @@
 import numpy as np
 import pandas as pd
 import wfdb
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+plt.ioff()
 import matplotlib.patches as patches
 from sklearn.metrics import roc_auc_score
 

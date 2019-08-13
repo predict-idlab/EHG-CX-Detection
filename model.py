@@ -1,3 +1,4 @@
+
 from tsfresh.feature_selection.relevance import calculate_relevance_table
 
 from catboost import CatBoostClassifier
@@ -11,7 +12,10 @@ import logging
 from collections import Counter
 import time
 
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+plt.ioff()
 
 logging.getLogger("tsfresh").setLevel(logging.ERROR)
 
@@ -104,7 +108,7 @@ def fit_model(X_train, y_train, output_path):
 
     clf = CatBoostClassifier(iterations=1000, od_type='Iter', od_wait=50, 
                              objective='CrossEntropy', random_seed=2018,
-                             eval_metric='AUC',
+                             #eval_metric='AUC',
                              use_best_model=True, task_type='CPU')
         
     clf.fit(X_train, y_train, eval_set=(X_val, y_val), verbose=100)

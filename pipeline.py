@@ -17,7 +17,7 @@ import json
 parameters = json.load(open('config.json', 'r'))
 
 # Parameters
-DATA_DIR = '../tpehgts'
+DATA_DIR = 'tpehgts'
 WINDOW_SIZE = parameters['WINDOW_SIZE']
 WINDOW_SHIFT = parameters['WINDOW_SHIFT']
 P_VALUE = parameters['P_VALUE']
@@ -41,7 +41,7 @@ for train_files, test_files in folds:
     # which will be used to train our model
     train_windows, train_labels, train_idx, all_train_files = [], [], [], []
     for file in tqdm(train_files, desc='Extracting train fit windows...'):
-        windows, labels, idx = extract_train_windows(f'{DATA_DIR}/{file}', 
+        windows, labels, idx = extract_train_windows('{}/{}'.format(DATA_DIR, file), 
                                                      window_size=WINDOW_SIZE,
                                                      shift=WINDOW_SHIFT,
                                                      LOW_FREQ=LOW_FREQ,
@@ -54,7 +54,7 @@ for train_files, test_files in folds:
     # Now cut up all train signals into windows for evaluation
     train_eval_windows, train_eval_idx, all_train_eval_files = [], [], []
     for file in tqdm(train_files, desc='Extracting train eval windows...'):
-        windows, idx = extract_test_windows(f'{DATA_DIR}/{file}', 
+        windows, idx = extract_test_windows('{}/{}'.format(DATA_DIR, file), 
                                                window_size=WINDOW_SIZE,
                                                shift=WINDOW_SHIFT,
                                                LOW_FREQ=LOW_FREQ,
@@ -66,7 +66,7 @@ for train_files, test_files in folds:
     # Also cut up the test signals into windows
     test_windows, test_labels, test_start_idx, all_test_files = [], [], [], []
     for file in tqdm(test_files, desc='Extracting test windows...'):
-        windows, idx = extract_test_windows(f'{DATA_DIR}/{file}',
+        windows, idx = extract_test_windows('{}/{}'.format(DATA_DIR, file),
                                             window_size=WINDOW_SIZE,
                                             shift=WINDOW_SHIFT,
                                             LOW_FREQ=LOW_FREQ,

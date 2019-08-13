@@ -51,7 +51,7 @@ def calculate_window_correlation(window):
     names = []
     for ch1, ch2 in itertools.permutations(range(n_channels), 2):
         coefs.append(calc_non_linear_corr(window[ch1], window[ch2]))
-        names.append(f'non_lin_corr_{ch1}_{ch2}')
+        names.append('non_lin_corr_{}_{}'.format(ch1, ch2))
         
     return coefs, names
 
@@ -108,7 +108,7 @@ def calculate_rms_basal_diff(window):
         features.extend([np.mean(diff_signal), np.std(diff_signal), 
                          np.max(diff_signal), np.min(diff_signal), 
                          np.sum(diff_signal == 0)])
-        names.extend([f'mean_{ch}', f'std_{ch}', f'max_{ch}', f'min_{ch}', f'zeros_{ch}'])
+        names.extend(['mean_{}'.format(ch), 'std_{}'.format(ch), 'max_{}'.format(ch), 'min_{}'.format(ch), 'zeros_{}'.format(ch)])
         
     return features, names
 
@@ -208,6 +208,8 @@ def extract_window_features(window):
     tsfresh_features = extract_features(df, impute_function=impute, column_id='id',
                                         default_fc_parameters=EfficientFCParameters(),
                                         show_warnings=False, n_jobs=n_cpu,
+                                        #parallelization='per_kind',
+                                        chunksize=1,
                                         disable_progressbar=True)
     tsfresh_feature_names = list(tsfresh_features.columns)
     tsfresh_features = list(tsfresh_features.values[0, :])
@@ -221,7 +223,7 @@ def extract_window_features(window):
     med_freq_feature_names = []
     for ch in range(3):
         for band in range(4):
-            med_freq_feature_names.append(f'median_freq_b{band}_ch{ch}')
+            med_freq_feature_names.append('median_freq_b{}_ch{}'.format(band, ch))
             
     med_freq_features = []
     for ch in range(3):
@@ -231,7 +233,7 @@ def extract_window_features(window):
     peak_freq_feature_names = []
     for ch in range(3):
         for band in range(4):
-            peak_freq_feature_names.append(f'peak_freq_b{band}_ch{ch}')
+            peak_freq_feature_names.append('peak_freq_b{}_ch{}'.format(band, ch))
             
     peak_freq_features = []
     for ch in range(3):
@@ -290,7 +292,7 @@ def process_header_file_tpehgt(file):
 def extract_clinical_features_tpehgt(files, DATA_DIR='tpehgts'):
     clinical_vars = []
     for file in tqdm(files, desc='Extracting clinical features...'):
-        names, values = process_header_file_tpehgt(f'{DATA_DIR}/{file}.hea')
+        names, values = process_header_file_tpehgt('{}/{}.hea'.format(DATA_DIR, file))
         clinical_vars.append(values)
 
     clinical_df = pd.DataFrame(clinical_vars, columns=names)
@@ -343,7 +345,7 @@ def extract_all_features(train_fit_windows, train_fit_labels, train_fit_files,
     )
     print('OK!')
 
-    _columns = [f'boss_{i}' for i in range(len(train_boss[0]))]
+    _columns = ['boss_{}'.format(i) for i in range(len(train_boss[0]))]
     train_boss_df = pd.DataFrame(train_boss, columns=_columns)
     test_boss_df = pd.DataFrame(test_boss, columns=_columns)
     boss_df = pd.concat([train_boss_df, test_boss_df])

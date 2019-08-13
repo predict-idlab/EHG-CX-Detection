@@ -2,7 +2,7 @@
 tpehgts/*
 pn6/*
 catboost_info/*
-output/*
+# output/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

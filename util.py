@@ -9,7 +9,7 @@ from librosa.core import resample
 
 from sklearn.preprocessing import RobustScaler
 
-def partition_data(directory, n_splits=3):
+def partition_data(directory, n_splits=5):
     files = set([x.split('.')[0] for x in os.listdir(directory)])
 
     p_files, t_files, n_files = [], [], []
@@ -23,6 +23,9 @@ def partition_data(directory, n_splits=3):
 
     np.random.shuffle(p_files)
     np.random.shuffle(t_files)
+
+    #p_files = p_files[:2]
+    #t_files = t_files[:3]
 
     folds = []
     for split in range(n_splits):
