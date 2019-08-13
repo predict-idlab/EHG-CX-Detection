@@ -10,6 +10,8 @@ from tsfresh import extract_features
 from tsfresh.feature_extraction import EfficientFCParameters
 from tsfresh.utilities.dataframe_functions import impute
 
+import nolds
+
 from tqdm import tqdm
 
 import itertools
@@ -200,6 +202,24 @@ def peak_freq(data, low, high, fs):
     return np.max(ps[start:end] / np.max(ps))
 
 
+def log2(data):
+    return np.exp(np.mean(np.log(np.abs(data))))
+
+
+def time_reversibility(data):
+    norm = 1 / (len(data) - 1)
+    lagged_data = data[1:]
+    return norm * np.power((lagged_data - data[:-1]), 3)
+
+
+def lyapunov(data):
+    return nolds.lyap_e(data)
+
+
+def simple_square_integral(data):
+    return np.sum(np.power(data, 2))
+
+
 def extract_window_features(window):
     window = np.array(window)
     df = pd.DataFrame(window.T)
@@ -239,13 +259,39 @@ def extract_window_features(window):
     for ch in range(3):
         for low, high in [(0.08, 1), (1, 2.2), (2.2, 3.5), (3.5, 5)]:
             peak_freq_features.append(peak_freq(window[ch], low, high, 20))
-            
+
+    log_features = []
+    log_names = []
+    for ch in range(3):
+        log_features.append(log2(window[ch]))
+        log_names.append('log_{}'.format(ch))
+
+    tr_features = []
+    tr_names = []
+    for ch in range(3):
+        tr_features.append(time_reversibility(window[ch]))
+        tr_names.append('tr_{}'.format(ch))
+
+    ly_features = []
+    ly_names = []
+    for ch in range(3):
+        ly_exp = lyapunov(window[ch])
+        for i, exp in enumerate(ly_exp):
+            ly_features.append(exp)
+            ly_names.append('ly_ch{}_{}'.format(ch, i))
+
+    si_features = []
+    si_names = []
+    for ch in range(3):
+        si_features.append(simple_square_integral(window[ch]))
+        si_names.append('si_{}'.format(ch))
             
     features = (tsfresh_features + corr_coefs + rms_features + sampen_features 
-                + med_freq_features + peak_freq_features)
+                + med_freq_features + peak_freq_features + log_features
+                + tr_features + ly_features + si_features)
     names = (tsfresh_feature_names + corr_names + rms_names + sampen_names 
-             + med_freq_feature_names + peak_freq_feature_names)
-    
+             + med_freq_feature_names + peak_freq_feature_names + log_names
+             + tr_names + ly_names + si_names)
     
     return features, names
 
