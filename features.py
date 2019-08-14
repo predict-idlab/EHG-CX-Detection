@@ -422,7 +422,7 @@ def extract_all_features(train_fit_windows, train_fit_labels, train_idx,
     p = MyPool(n_cpu)
 
     p.map(partial(extract_window_features, queue=res_queue), 
-          zip(all_windows, all_idx, all_files))
+          zip(all_windows, all_files, all_idx))
     p.close()
     p.join()
 
