@@ -66,7 +66,7 @@ def remove_features(data):
     return useless_cols
 
 
-def select_features(X_train, y_train, X_train_eval, X_test, ts_features, P_VALUE=0.05):
+def select_features(X_train, y_train, X_test, ts_features, P_VALUE=0.05):
     useless_cols = remove_features(X_train)
 
     train_ts_features = X_train[ts_features]
@@ -80,10 +80,9 @@ def select_features(X_train, y_train, X_train_eval, X_test, ts_features, P_VALUE
     print('Dropping {} features...'.format(len(unrel_ts_features)))
 
     X_train = X_train.drop(unrel_ts_features, axis=1)
-    X_train_eval = X_train_eval.drop(unrel_ts_features, axis=1)
     X_test = X_test.drop(unrel_ts_features, axis=1)
 
-    return X_train, X_train_eval, X_test
+    return X_train, X_test
 
 
 def fit_model(X_train, y_train, output_path):

@@ -16,8 +16,23 @@ from tqdm import tqdm
 
 import itertools
 import multiprocessing
+from functools import partial
 
 n_cpu = multiprocessing.cpu_count()
+
+class NoDaemonProcess(multiprocessing.Process):
+    # make 'daemon' attribute always return False
+    def _get_daemon(self):
+        return False
+    def _set_daemon(self, value):
+        pass
+    daemon = property(_get_daemon, _set_daemon)
+
+# We sub-class multiprocessing.pool.Pool instead of multiprocessing.Pool
+# because the latter is only a wrapper function, not a proper class.
+class MyPool(multiprocessing.pool.Pool):
+    Process = NoDaemonProcess
+
 
 def calc_non_linear_corr(X, Y, bins=13):
     _, edges = np.histogram(X, bins=bins)
@@ -220,15 +235,15 @@ def simple_square_integral(data):
     return np.sum(np.power(data, 2))
 
 
-def extract_window_features(window):
+def extract_window_features(params, queue=None):
+    window, file, idx = params
     window = np.array(window)
     df = pd.DataFrame(window.T)
     df.columns = ['EHG_0', 'EHG_1', 'EHG_2']
     df['id'] = 0
     tsfresh_features = extract_features(df, impute_function=impute, column_id='id',
                                         default_fc_parameters=EfficientFCParameters(),
-                                        show_warnings=False, n_jobs=n_cpu,
-                                        #parallelization='per_kind',
+                                        show_warnings=False, n_jobs=1,
                                         chunksize=1,
                                         disable_progressbar=True)
     tsfresh_feature_names = list(tsfresh_features.columns)
@@ -292,8 +307,8 @@ def extract_window_features(window):
     names = (tsfresh_feature_names + corr_names + rms_names + sampen_names 
              + med_freq_feature_names + peak_freq_feature_names + log_names
              + tr_names + ly_names + si_names)
-    
-    return features, names
+
+    queue.put((features, file, idx, names))
 
 
 def extract_boss_features(train_windows, train_labels, test_windows):
@@ -379,15 +394,16 @@ def extract_clinical_features_iceland(files):
     pass
 
 
-def extract_all_features(train_fit_windows, train_fit_labels, train_fit_files,
-                         train_eval_windows, train_eval_files,
-                         test_windows, test_files, DATA_DIR='tpehgts', 
+def extract_all_features(train_fit_windows, train_fit_labels, train_idx,
+                         train_fit_files, test_windows, test_idx, test_files, 
+                         DATA_DIR='tpehgts', 
                          clin_extract=extract_clinical_features_tpehgt):
+    
     # Extract BOSS features
     print(end='Extracting BOSS features...  ')
     train_boss, test_boss = extract_boss_features(
         np.array(train_fit_windows), train_fit_labels, 
-        np.array(test_windows + train_eval_windows)
+        np.array(test_windows)
     )
     print('OK!')
 
@@ -397,23 +413,36 @@ def extract_all_features(train_fit_windows, train_fit_labels, train_fit_files,
     boss_df = pd.concat([train_boss_df, test_boss_df])
 
     # Extract unsupervised features from literature and using TSFRESH
+    m = multiprocessing.Manager()
+    res_queue = m.Queue()
+    feature_procs = []
+    all_windows = train_fit_windows + test_windows
+    all_idx = train_idx + test_idx
+    all_files = train_fit_files + test_files
+    p = MyPool(n_cpu)
+
+    p.map(partial(extract_window_features, queue=res_queue), 
+          zip(all_windows, all_idx, all_files))
+    p.close()
+    p.join()
+
     feature_vectors = []
-    all_windows = train_fit_windows + train_eval_windows + test_windows
-    all_files = train_fit_files + train_eval_files + test_files
-    for window, file in tqdm(zip(all_windows, all_files),
-                             total=len(all_windows),
-                             desc='Extracting unsupervised features...'):
-        features, names = extract_window_features(window)
-        vector = [file] + features
+    while not res_queue.empty():
+        features, file, idx, names = res_queue.get()
+        vector = [file, idx] + features
         feature_vectors.append(vector)
 
-    _columns = ['file'] + names
+    _columns = ['file', 'idx'] + names
     features_df = pd.DataFrame(feature_vectors, columns=_columns)
+    features_df['file_idx'] = features_df['file'].apply(lambda x: all_files.index(x))
+    features_df = features_df.sort_values(by=['file_idx', 'idx'])
+    features_df = features_df.drop(['file_idx', 'idx'], axis=1)
+
     features_df = pd.concat([features_df.reset_index(drop=True),
                              boss_df.reset_index(drop=True)], axis=1)
 
     # Extract clinical variables
-    clinical_df = clin_extract(set(train_fit_files + train_eval_files + test_files))
+    clinical_df = clin_extract(set(train_fit_files + test_files))
 
     # Merge it all together
     ts_features = list(set(features_df.columns) - {'file'})
@@ -422,7 +451,7 @@ def extract_all_features(train_fit_windows, train_fit_labels, train_fit_files,
                                     right_on='ID')
 
     train_fit_features_df = features_df.iloc[:len(train_fit_windows)]
-    train_eval_features_df = features_df.iloc[len(train_fit_windows):(len(train_fit_windows) + len(train_eval_windows))]
-    test_features_df = features_df.iloc[(len(train_fit_windows) + len(train_eval_windows)):]
+    #train_eval_features_df = features_df.iloc[len(train_fit_windows):(len(train_fit_windows) + len(train_eval_windows))]
+    test_features_df = features_df.iloc[len(train_fit_windows):]
 
-    return train_fit_features_df, train_eval_features_df, test_features_df, ts_features, clinical_features
+    return train_fit_features_df, test_features_df, ts_features, clinical_features

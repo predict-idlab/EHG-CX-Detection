@@ -52,19 +52,19 @@ for train_files, test_files in folds:
         all_train_files.extend([file] * len(labels))
 
     # Now cut up all train signals into windows for evaluation
-    train_eval_windows, train_eval_idx, all_train_eval_files = [], [], []
-    for file in tqdm(train_files, desc='Extracting train eval windows...'):
-        windows, idx = extract_test_windows('{}/{}'.format(DATA_DIR, file), 
-                                               window_size=WINDOW_SIZE,
-                                               shift=WINDOW_SHIFT,
-                                               LOW_FREQ=LOW_FREQ,
-                                               HIGH_FREQ=HIGH_FREQ)
-        train_eval_windows.extend(windows)
-        train_eval_idx.extend(idx)
-        all_train_eval_files.extend([file] * len(idx))
+    # train_eval_windows, train_eval_idx, all_train_eval_files = [], [], []
+    # for file in tqdm(train_files, desc='Extracting train eval windows...'):
+    #     windows, idx = extract_test_windows('{}/{}'.format(DATA_DIR, file), 
+    #                                            window_size=WINDOW_SIZE,
+    #                                            shift=WINDOW_SHIFT,
+    #                                            LOW_FREQ=LOW_FREQ,
+    #                                            HIGH_FREQ=HIGH_FREQ)
+    #     train_eval_windows.extend(windows)
+    #     train_eval_idx.extend(idx)
+    #     all_train_eval_files.extend([file] * len(idx))
 
     # Also cut up the test signals into windows
-    test_windows, test_labels, test_start_idx, all_test_files = [], [], [], []
+    test_windows, test_labels, test_idx, all_test_files = [], [], [], []
     for file in tqdm(test_files, desc='Extracting test windows...'):
         windows, idx = extract_test_windows('{}/{}'.format(DATA_DIR, file),
                                             window_size=WINDOW_SIZE,
@@ -72,22 +72,20 @@ for train_files, test_files in folds:
                                             LOW_FREQ=LOW_FREQ,
                                             HIGH_FREQ=HIGH_FREQ)
         test_windows.extend(windows)
-        test_start_idx.extend(idx)
+        test_idx.extend(idx)
         all_test_files.extend([file] * len(idx))
 
     # Now extract features from these windows
-    X_train, X_train_eval, X_test, ts_features, clin_features = extract_all_features(
-        train_windows, train_labels, all_train_files, train_eval_windows, 
-        all_train_eval_files, test_windows, all_test_files
+    X_train, X_test, ts_features, clin_features = extract_all_features(
+        train_windows, train_labels, train_idx, all_train_files, 
+        test_windows, test_idx, all_test_files
     )
 
     train_labels = pd.Series(train_labels, index=X_train.index)
 
     # Apply feature selection
-    X_train, X_train_eval, X_test = select_features(X_train, train_labels, 
-                                                    X_train_eval, X_test, 
-                                                    ts_features, 
-                                                    P_VALUE=P_VALUE)
+    X_train, X_test = select_features(X_train, train_labels, X_test, 
+                                      ts_features, P_VALUE=P_VALUE)
 
     # Create a gradient boosting model
     model = fit_model(X_train, train_labels, OUTPUT_DIR)
@@ -95,8 +93,8 @@ for train_files, test_files in folds:
     # Generate the predictions for training and testing files
     for file in np.unique(all_test_files):
         generate_predictions(file, X_test.loc[X_test['file'] == file, :], np.array(test_start_idx)[np.array(all_test_files) == file], model, WINDOW_SIZE, DATA_DIR, OUTPUT_DIR+'/test')
-    for file in np.unique(all_train_eval_files):
-        generate_predictions(file, X_train_eval.loc[X_train_eval['file'] == file, :], np.array(train_eval_idx)[np.array(all_train_eval_files) == file], model, WINDOW_SIZE, DATA_DIR, OUTPUT_DIR+'/train')
+    #for file in np.unique(all_train_eval_files):
+    #    generate_predictions(file, X_train_eval.loc[X_train_eval['file'] == file, :], np.array(train_eval_idx)[np.array(all_train_eval_files) == file], model, WINDOW_SIZE, DATA_DIR, OUTPUT_DIR+'/train')
 
     # Generate predictions for the icelandic dataset
     if TRANSFER:
