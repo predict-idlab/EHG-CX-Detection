@@ -92,7 +92,7 @@ for train_files, test_files in folds:
 
     # Generate the predictions for training and testing files
     for file in np.unique(all_test_files):
-        generate_predictions(file, X_test.loc[X_test['file'] == file, :], np.array(test_start_idx)[np.array(all_test_files) == file], model, WINDOW_SIZE, DATA_DIR, OUTPUT_DIR+'/test')
+        generate_predictions(file, X_test.loc[X_test['file'] == file, :], np.array(test_idx)[np.array(all_test_files) == file], model, WINDOW_SIZE, DATA_DIR, OUTPUT_DIR+'/test')
     #for file in np.unique(all_train_eval_files):
     #    generate_predictions(file, X_train_eval.loc[X_train_eval['file'] == file, :], np.array(train_eval_idx)[np.array(all_train_eval_files) == file], model, WINDOW_SIZE, DATA_DIR, OUTPUT_DIR+'/train')
 
