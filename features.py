@@ -224,7 +224,7 @@ def log2(data):
 def time_reversibility(data):
     norm = 1 / (len(data) - 1)
     lagged_data = data[1:]
-    return norm * np.power((lagged_data - data[:-1]), 3)
+    return norm * np.sum(np.power((lagged_data - data[:-1]), 3))
 
 
 def lyapunov(data):
@@ -437,7 +437,7 @@ def extract_all_features(train_fit_windows, train_fit_labels, train_idx,
     features_df['file_idx'] = features_df['file'].apply(lambda x: all_files.index(x))
     features_df = features_df.sort_values(by=['file_idx', 'idx'])
     features_df = features_df.drop(['file_idx', 'idx'], axis=1)
-
+    print(features_df.sample(50))
     features_df = pd.concat([features_df.reset_index(drop=True),
                              boss_df.reset_index(drop=True)], axis=1)
 
