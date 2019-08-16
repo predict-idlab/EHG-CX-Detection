@@ -33,6 +33,7 @@ OUTPUT_DIR = 'output/{}_{}_{}_{}_{}'.format(today.year, today.month,
 os.mkdir(OUTPUT_DIR)
 os.mkdir(OUTPUT_DIR + '/train')
 os.mkdir(OUTPUT_DIR + '/test')
+json.dump(parameters, open(OUTPUT_DIR+'/config.json', 'w+'))
 
 folds = partition_data(DATA_DIR)
 
@@ -106,6 +107,3 @@ for train_files, test_files in folds:
         print(file)
         print('AUC = {}'.format(auc))
         print('IoUs = {}'.format(ious))
-
-# Evaluate all out-of-fold predictions
-evaluate_all(np.unique(train_files + test_files), OUTPUT_DIR+'/test', OUTPUT_DIR)

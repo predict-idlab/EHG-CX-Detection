@@ -61,6 +61,20 @@ def calculate_auc(intervals, predictions):
     return roc_auc_score(labels, preds)
 
 
+def get_labels_preds(intervals, predictions):
+    preds = []
+    labels = []
+    for (start_idx, start_type), (end_idx, end_type) in zip(intervals[::2], intervals[1::2]):
+        if start_type[-1] == 'C':
+            labels.extend([1]*(end_idx - start_idx))
+            preds.extend(predictions[start_idx:end_idx])
+        else:
+            labels.extend([0]*(end_idx - start_idx))
+            preds.extend(predictions[start_idx:end_idx])
+
+    return labels, preds
+
+
 def create_plot(signal_ch1, signal_ch2, signal_ch3, predictions, intervals, OUTPUT_PATH):
     f, ax = plt.subplots(4, 1, sharex=True, figsize=(15,3))
     ax[0].plot(signal_ch1)
