@@ -77,13 +77,13 @@ def read_signal(file_path, LOW_FREQ=0.05, HIGH_FREQ=0.3):
     signal_ch2 = medfilt(signal_ch2)
     signal_ch3 = medfilt(signal_ch3)
 
-    ch1_scaler = RobustScaler()
-    ch2_scaler = RobustScaler()
-    ch3_scaler = RobustScaler()
+    #ch1_scaler = RobustScaler()
+    #ch2_scaler = RobustScaler()
+    #ch3_scaler = RobustScaler()
 
-    signal_ch1 = ch1_scaler.fit_transform(signal_ch1.reshape(-1, 1)).reshape(-1, )
-    signal_ch2 = ch2_scaler.fit_transform(signal_ch2.reshape(-1, 1)).reshape(-1, )
-    signal_ch3 = ch3_scaler.fit_transform(signal_ch3.reshape(-1, 1)).reshape(-1, )
+    #signal_ch1 = ch1_scaler.fit_transform(signal_ch1.reshape(-1, 1)).reshape(-1, )
+    #signal_ch2 = ch2_scaler.fit_transform(signal_ch2.reshape(-1, 1)).reshape(-1, )
+    #signal_ch3 = ch3_scaler.fit_transform(signal_ch3.reshape(-1, 1)).reshape(-1, )
 
     return signal_ch1, signal_ch2, signal_ch3, annotated_intervals
 
@@ -109,13 +109,13 @@ def read_signal_iceland(file_path, LOW_FREQ=0.05, HIGH_FREQ=0.3):
     signal_ch2 = resample(signal_ch2, 200, 20)
     signal_ch3 = resample(signal_ch3, 200, 20)
 
-    ch1_scaler = RobustScaler()
-    ch2_scaler = RobustScaler()
-    ch3_scaler = RobustScaler()
+    #ch1_scaler = RobustScaler()
+    #ch2_scaler = RobustScaler()
+    #ch3_scaler = RobustScaler()
 
-    signal_ch1 = ch1_scaler.fit_transform(signal_ch1.reshape(-1, 1)).reshape(-1, )
-    signal_ch2 = ch2_scaler.fit_transform(signal_ch2.reshape(-1, 1)).reshape(-1, )
-    signal_ch3 = ch3_scaler.fit_transform(signal_ch3.reshape(-1, 1)).reshape(-1, )
+    #signal_ch1 = ch1_scaler.fit_transform(signal_ch1.reshape(-1, 1)).reshape(-1, )
+    #signal_ch2 = ch2_scaler.fit_transform(signal_ch2.reshape(-1, 1)).reshape(-1, )
+    #signal_ch3 = ch3_scaler.fit_transform(signal_ch3.reshape(-1, 1)).reshape(-1, )
 
     return signal_ch1, signal_ch2, signal_ch3, annotated_intervals
 
