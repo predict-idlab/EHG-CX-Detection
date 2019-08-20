@@ -1,7 +1,7 @@
 {
 	"WINDOW_SIZE": 1000,
-	"WINDOW_SHIFT": 200,
-	"P_VALUE": 0.1,
+	"WINDOW_SHIFT": 100,
+	"P_VALUE": 0.01,
 	"LOW_FREQ": 0.05,
 	"HIGH_FREQ": 3.0,
 	"TRANSFER": false
