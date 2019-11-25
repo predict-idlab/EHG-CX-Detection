@@ -64,10 +64,19 @@ def signal_cx_weighted_auc(directory):
 
     return roc_auc_score(all_labels, all_preds, sample_weight=all_weights)
 
+score_per_config = {}
 for directory in os.listdir(RESULTS_DIR):
     print(directory)
+    config = json.loads(open(RESULTS_DIR + '/' + directory + '/config.json', 'r').read())
     if 'config.json' in os.listdir(RESULTS_DIR + '/' + directory):
-    	print(json.loads(open(RESULTS_DIR + '/' + directory + '/config.json', 'r').read()))
-    print('Unweighted AUC = {}'.format(unweighted_auc(RESULTS_DIR + '/' + directory)))
-    print('CX Weighted AUC = {}'.format(cx_weighted_auc(RESULTS_DIR + '/' + directory)))
-    print('Signal + CX Weighted AUC = {}'.format(signal_cx_weighted_auc(RESULTS_DIR + '/' + directory)))
+    	print(config)
+    auc_unw = unweighted_auc(RESULTS_DIR + '/' + directory)
+    print('Unweighted AUC = {}'.format(auc_unw))
+    auc_unw_cx = cx_weighted_auc(RESULTS_DIR + '/' + directory)
+    print('CX Weighted AUC = {}'.format(auc_unw_cx))
+    auc_unw_cx_signal = signal_cx_weighted_auc(RESULTS_DIR + '/' + directory)
+    print('Signal + CX Weighted AUC = {}'.format(auc_unw_cx_signal))
+    score_per_config[tuple(config.items())] = auc_unw + auc_unw_cx + auc_unw_cx_signal
+
+for k, v in sorted(score_per_config.items(), key=lambda x: -x[1])[:5]:
+	print(dict(k), v)

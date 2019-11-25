@@ -11,7 +11,7 @@ from sklearn.preprocessing import RobustScaler
 
 def partition_data(directory, n_splits=5):
     files = set([x.split('.')[0] for x in os.listdir(directory)])
-
+    files = list(files)[:25]
     p_files, t_files, n_files = [], [], []
     for file in files:
         if file[-4] == 'n':
@@ -120,11 +120,20 @@ def read_signal_iceland(file_path, LOW_FREQ=0.05, HIGH_FREQ=0.3):
     return signal_ch1, signal_ch2, signal_ch3, annotated_intervals
 
 
-def extract_train_windows(file_path, window_size=1000, shift=1000, read_fn=read_signal, LOW_FREQ=0.05, HIGH_FREQ=0.3):
+def extract_train_windows(file_path, window_size=1000, shift=1000, read_fn=read_signal, LOW_FREQ=0.05, HIGH_FREQ=0.3, norm=False):
     signal_ch1, signal_ch2, signal_ch3, intervals = read_fn(file_path, LOW_FREQ=LOW_FREQ, HIGH_FREQ=HIGH_FREQ)
     indices = []
     windows = []
     labels = []
+
+    if norm:
+        ch1_min, ch1_max = np.percentile(signal_ch1, 10), np.percentile(signal_ch1, 90)
+        ch2_min, ch2_max = np.percentile(signal_ch2, 10), np.percentile(signal_ch2, 90)
+        ch3_min, ch3_max = np.percentile(signal_ch3, 10), np.percentile(signal_ch3, 90)
+        
+        signal_ch1 = (signal_ch1 - ch1_min) / (ch1_max - ch1_min)
+        signal_ch2 = (signal_ch2 - ch2_min) / (ch2_max - ch2_min)
+        signal_ch3 = (signal_ch3 - ch3_min) / (ch3_max - ch3_min)
     
     for annotation1, annotation2 in zip(intervals[::2], intervals[1::2]):
         if annotation1[1][-1] not in ['C', 'D']:
@@ -157,10 +166,19 @@ def extract_train_windows(file_path, window_size=1000, shift=1000, read_fn=read_
     return windows, labels, indices
 
 
-def extract_test_windows(file_path, window_size=1000, shift=1000, read_fn=read_signal, LOW_FREQ=0.05, HIGH_FREQ=0.3):
+def extract_test_windows(file_path, window_size=1000, shift=1000, read_fn=read_signal, LOW_FREQ=0.05, HIGH_FREQ=0.3, norm=False):
     signal_ch1, signal_ch2, signal_ch3, intervals = read_signal(file_path, LOW_FREQ=LOW_FREQ, HIGH_FREQ=HIGH_FREQ)
     indices = []
     windows = []
+
+    if norm:
+        ch1_min, ch1_max = np.percentile(signal_ch1, 10), np.percentile(signal_ch1, 90)
+        ch2_min, ch2_max = np.percentile(signal_ch2, 10), np.percentile(signal_ch2, 90)
+        ch3_min, ch3_max = np.percentile(signal_ch3, 10), np.percentile(signal_ch3, 90)
+        
+        signal_ch1 = (signal_ch1 - ch1_min) / (ch1_max - ch1_min)
+        signal_ch2 = (signal_ch2 - ch2_min) / (ch2_max - ch2_min)
+        signal_ch3 = (signal_ch3 - ch3_min) / (ch3_max - ch3_min)
 
     for start in range(0, len(signal_ch1) - window_size, shift):
         windows.append(

@@ -34,18 +34,113 @@ class MyPool(multiprocessing.pool.Pool):
     Process = NoDaemonProcess
 
 
-def calc_non_linear_corr(X, Y, bins=13):
+def get_corr_features(X):
+    """Get all coordinates in the X-matrix with correlation value equals 1
+    (columns with equal values), excluding elements on the diagonal.
+
+    Parameters:
+    -----------
+    - train_df: pd.DataFrame
+        the feature matrix where correlated features need to be removed
+
+    Returns
+    -------
+    - correlated_feature_pairs: list of tuples
+        coordinates (row, col) where correlated features can be found
+    """
+    row_idx, col_idx = np.where(np.abs(X.corr()) > 0.975)
+    self_corr = set([(i, i) for i in range(X.shape[1])])
+    correlated_feature_pairs = set(list(zip(row_idx, col_idx))) - self_corr
+    return correlated_feature_pairs
+
+
+def get_uncorr_features(data):
+    """Remove clusters of these correlated features, until only one feature 
+    per cluster remains.
+
+    Parameters:
+    -----------
+    - data: pd.DataFrame
+        the feature matrix where correlated features need to be removed
+
+    Returns
+    -------
+    - data_uncorr_cols: list of string
+        the column names that are completely uncorrelated to eachother
+    """
+    X_train_corr = data.copy()
+    correlated_features = get_corr_features(X_train_corr)
+
+    corr_cols = set()
+    for row_idx, col_idx in correlated_features:
+        corr_cols.add(row_idx)
+        corr_cols.add(col_idx)
+
+    uncorr_cols = list(set(X_train_corr.columns) - set(X_train_corr.columns[list(corr_cols)]))
+   
+    col_mask = [False]*X_train_corr.shape[1]
+    for col in corr_cols:
+        col_mask[col] = True
+    X_train_corr = X_train_corr.loc[:, col_mask]
+  
+    correlated_features = get_corr_features(X_train_corr)
+
+    while correlated_features:
+        corr_row, corr_col = correlated_features.pop()
+        col_mask = [True]*X_train_corr.shape[1]
+        col_mask[corr_row] = False
+        X_train_corr = X_train_corr.loc[:, col_mask]
+        correlated_features = get_corr_features(X_train_corr)
+
+    data_uncorr_cols = list(set(list(X_train_corr.columns) + uncorr_cols))
+
+    return data_uncorr_cols
+
+
+def remove_features(data):
+    """Remove all correlated features and columns with only a single value.
+
+    Parameters:
+    -----------
+    - data: pd.DataFrame
+        the feature matrix where correlated features need to be removed
+
+    Returns
+    -------
+    - useless_cols: list of string
+        list of column names that have no predictive value
+    """
+    single_cols = list(data.columns[data.nunique() == 1])
+
+    uncorr_cols = get_uncorr_features(data)
+    corr_cols = list(set(data.columns) - set(uncorr_cols))
+
+    useless_cols = list(set(single_cols + corr_cols))
+
+    print('Removing {} features'.format(len(useless_cols)))
+
+    return useless_cols
+
+
+def calc_non_linear_corr(X, Y, bins=15, plot=False):
     _, edges = np.histogram(X, bins=bins)
-    bin_mids = [np.min(X)]
-    averages = [np.min(Y)]
-    for i in range(len(edges) - 1):
+    bin_mids = [edges[0]]
+    averages = [np.mean(Y[X <= edges[0]])]
+    
+    #print(Y[X < edges[0]])
+    
+    for i in range(0, len(edges) - 1):
         # Divide X into bins --> calculate their midpoints (Pi)
         bin_mids.append((edges[i] + edges[i + 1]) / 2)
         # Calculate the average of Y values in each bin (Qi)
-        y_vals = Y[(X >= edges[i]) & (X < edges[i + 1])]
-        averages.append(np.mean(y_vals))
-    bin_mids.append(np.max(X))
-    averages.append(np.max(Y))
+        averages.append(np.mean(Y[(X >= edges[i]) & (X < edges[i + 1])]))
+
+    bin_mids.append(edges[-1])
+    averages.append(np.mean(Y[X >= edges[-1]]))
+        
+    bin_mids = np.array(bin_mids)
+    averages = np.array(averages)
+    averages = np.interp(bin_mids, bin_mids[~np.isnan(averages)], averages[~np.isnan(averages)])
         
     # Fit piecewise straight lines to (Pi, Qi)
     piecewise_fit = np.interp(X, bin_mids, averages)
@@ -53,7 +148,7 @@ def calc_non_linear_corr(X, Y, bins=13):
     # Apply formula
     y_sq_sum = np.sum(np.power(Y, 2))
     
-    if y_sq_sum ==0:
+    if y_sq_sum == 0:
         return 0
     
     nominator = y_sq_sum - np.sum(np.power(Y - piecewise_fit, 2))
@@ -75,7 +170,6 @@ def calculate_window_correlation(window):
 
 def get_basal_tones(signal, window_size=300, shift=15, percentile=0.1, hz=20):
     basal_tones = []
-    differences = []
     for i in range(0, len(signal) - window_size + 1, shift):
         window = signal[i:i+window_size]
         _min, _max = np.min(window), np.max(window)
@@ -84,15 +178,12 @@ def get_basal_tones(signal, window_size=300, shift=15, percentile=0.1, hz=20):
         mean_smallest_values = np.mean(sorted(window)[:int(percentile * len(window))])
         
         basal_tones.append(mean_smallest_values + base_value)
-        differences.append(2 * (base_value - mean_smallest_values))
-        
+
     basal_tones = np.array(basal_tones)
-    basal_tones = resample(basal_tones, hz / (len(signal) / len(basal_tones)), hz)
-    
-    differences = np.array(differences)
-    differences = resample(differences, hz / (len(signal) / len(differences)), hz)
-    
-    return basal_tones, differences
+    basal_tones = np.interp(list(range(len(signal))),
+                            list(range(0, len(signal) - window_size + 1, shift)),
+                            basal_tones)
+    return basal_tones
 
 
 def rms(signal, window_size=300, shift=15, hz=20):
@@ -102,8 +193,9 @@ def rms(signal, window_size=300, shift=15, hz=20):
         subsignal = signal[i:i+window_size] * window
         rms_signal.append(np.sqrt(np.mean(subsignal ** 2)))
     rms_signal = np.array(rms_signal)
-    rms_signal = resample(rms_signal, hz / (len(signal) / len(rms_signal)), hz)
-    
+    rms_signal = np.interp(list(range(len(signal))),
+                           list(range(0, len(signal) - window_size + 1, shift)),
+                           rms_signal)
     return rms_signal
 
 
@@ -117,7 +209,7 @@ def calculate_rms_basal_diff(window):
     for ch in range(n_channels):
         signal = window[ch]
         rms_signal = rms(signal)
-        basal_signal, _ = get_basal_tones(signal)
+        basal_signal, _ = get_basal_tones(rms_signal)
         length = min(len(rms_signal), len(basal_signal))
         diff_signal = rms_signal[:length] - basal_signal[:length]
         diff_signal[diff_signal < 0] = 0
@@ -145,8 +237,6 @@ def delay_embedding(data, emb_dim, lag=1):
     indices = np.repeat([np.arange(emb_dim) * lag], m, axis=0)
     indices += np.arange(m).reshape((m, 1))
     return data[indices]
-
-#C = 1.*np.array([len([1 for j in range(len(x)) if i != j and _maxdist(x[i], x[j]) <= r]) for i in range(len(x))])
 
 def sampen(data, m=3, tol=0.15, dist=rowwise_chebyshev):
     data = np.asarray(data)

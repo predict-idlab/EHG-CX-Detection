@@ -41,6 +41,7 @@ for train_files, test_files in folds:
     # Let's first extract windows from the annotated parts of the signal,
     # which will be used to train our model
     train_windows, train_labels, train_idx, all_train_files = [], [], [], []
+    norm_train_windows, norm_train_labels, norm_train_idx, norm_all_train_files = [], [], [], []
     for file in tqdm(train_files, desc='Extracting train fit windows...'):
         windows, labels, idx = extract_train_windows('{}/{}'.format(DATA_DIR, file), 
                                                      window_size=WINDOW_SIZE,
@@ -52,20 +53,20 @@ for train_files, test_files in folds:
         train_idx.extend(idx)
         all_train_files.extend([file] * len(labels))
 
-    # Now cut up all train signals into windows for evaluation
-    # train_eval_windows, train_eval_idx, all_train_eval_files = [], [], []
-    # for file in tqdm(train_files, desc='Extracting train eval windows...'):
-    #     windows, idx = extract_test_windows('{}/{}'.format(DATA_DIR, file), 
-    #                                            window_size=WINDOW_SIZE,
-    #                                            shift=WINDOW_SHIFT,
-    #                                            LOW_FREQ=LOW_FREQ,
-    #                                            HIGH_FREQ=HIGH_FREQ)
-    #     train_eval_windows.extend(windows)
-    #     train_eval_idx.extend(idx)
-    #     all_train_eval_files.extend([file] * len(idx))
+        norm_windows, labels, idx = extract_train_windows('{}/{}'.format(DATA_DIR, file),
+                                                          window_size=WINDOW_SIZE,
+                                                          shift=WINDOW_SHIFT,
+                                                          LOW_FREQ=LOW_FREQ,
+                                                          HIGH_FREQ=HIGH_FREQ,
+                                                          norm=True)
+        norm_train_windows.extend(norm_windows)
+        norm_train_labels.extend(labels)
+        norm_train_idx.extend(idx)
+        norm_all_train_files.extend([file] * len(labels))
 
     # Also cut up the test signals into windows
     test_windows, test_labels, test_idx, all_test_files = [], [], [], []
+    norm_test_windows, norm_test_labels, norm_test_idx, norm_all_test_files = [], [], [], []
     for file in tqdm(test_files, desc='Extracting test windows...'):
         windows, idx = extract_test_windows('{}/{}'.format(DATA_DIR, file),
                                             window_size=WINDOW_SIZE,
@@ -76,13 +77,45 @@ for train_files, test_files in folds:
         test_idx.extend(idx)
         all_test_files.extend([file] * len(idx))
 
+        norm_windows, idx = extract_test_windows('{}/{}'.format(DATA_DIR, file),
+                                                 window_size=WINDOW_SIZE,
+                                                 shift=WINDOW_SHIFT,
+                                                 LOW_FREQ=LOW_FREQ,
+                                                 HIGH_FREQ=HIGH_FREQ,
+                                                 norm=True)
+        norm_test_windows.extend(norm_windows)
+        norm_test_idx.extend(idx)
+        norm_all_test_files.extend([file] * len(idx))
+
     # Now extract features from these windows
     X_train, X_test, ts_features, clin_features = extract_all_features(
         train_windows, train_labels, train_idx, all_train_files, 
         test_windows, test_idx, all_test_files
     )
 
+    X_train_norm, X_test_norm, ts_features_norm, clin_features_norm = extract_all_features(
+        norm_train_windows, norm_train_labels, norm_train_idx, norm_all_train_files, 
+        norm_test_windows, norm_test_idx, norm_all_test_files
+    )
+    X_train_norm = X_train_norm.drop(clin_features_norm, axis=1)
+    X_test_norm = X_test_norm.drop(clin_features_norm, axis=1)
+    col_map = {}
+    for feature in ts_features_norm:
+        col_map[feature] = '{}_norm'.format(feature)
+        ts_features.append('{}_norm'.format(feature))
+    X_train_norm = X_train_norm.rename(columns=col_map)
+    X_test_norm = X_test_norm.rename(columns=col_map)
+
+    X_train = pd.concat([X_train, X_train_norm], axis=1)
+    X_test = pd.concat([X_test, X_test_norm], axis=1)
+
     train_labels = pd.Series(train_labels, index=X_train.index)
+
+    # Remove highly correlated features
+    X = pd.concat([X_train, X_test])
+    useless_features = remove_features(X)
+    X_train = X_train.drop(useless_features, axis=1)
+    X_test = X_test.drop(useless_features, axis=1)
 
     # Apply feature selection
     X_train, X_test = select_features(X_train, train_labels, X_test, 
@@ -94,8 +127,6 @@ for train_files, test_files in folds:
     # Generate the predictions for training and testing files
     for file in np.unique(all_test_files):
         generate_predictions(file, X_test.loc[X_test['file'] == file, :], np.array(test_idx)[np.array(all_test_files) == file], model, WINDOW_SIZE, DATA_DIR, OUTPUT_DIR+'/test')
-    #for file in np.unique(all_train_eval_files):
-    #    generate_predictions(file, X_train_eval.loc[X_train_eval['file'] == file, :], np.array(train_eval_idx)[np.array(all_train_eval_files) == file], model, WINDOW_SIZE, DATA_DIR, OUTPUT_DIR+'/train')
 
     # Generate predictions for the icelandic dataset
     if TRANSFER:
