@@ -1,8 +1,9 @@
 import numpy as np
 from sklearn.utils.validation import check_is_fitted
 from sklearn.base import BaseEstimator, TransformerMixin
-from genetic import GeneticExtractor
-from pairwise_dist import _pdist, _pdist_location
+
+from gendis.genetic import GeneticExtractor
+from gendis.pairwise_dist import _pdist, _pdist_location
 from sklearn.metrics import roc_auc_score
 from sklearn.linear_model import LogisticRegression
 
@@ -42,4 +43,26 @@ def auc_fitness_location(X, y, shapelets, cache=None, verbose=False):
 class GENDISFeatures(BaseEstimator, TransformerMixin):
     def __init__(self):
         pass
+
+    def fit(self, X, y):
+        print(X.shape)
+        self.genetic_extractor = GeneticExtractor(verbose=True, population_size=25, 
+                                     iterations=10, wait=5, max_len=50,
+                                     plot=None, location=True, n_jobs=4,
+                                     fitness=auc_fitness_location)
+        self.genetic_extractor.fit(X, y)
+        self.names = []
+        for i, shap in enumerate(self.genetic_extractor.shapelets):
+            self.names.append('dist_shap_{}'.format(i))
+        for i, shap in enumerate(self.genetic_extractor.shapelets):
+            self.names.append('loc_shap_{}'.format(i))
+
+        return self
+
+    def transform(self, X):
+        return self.genetic_extractor.transform(X)
+
+    def fit_transform(self, X, y):
+        self.fit(X, y)
+        return self.transform(X)
 

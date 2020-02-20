@@ -8,7 +8,7 @@ from sklearn.neighbors import KDTree
 from entropy.utils import _embed
 
 class BasicFeatures(BaseEstimator, TransformerMixin):
-    def __init__(self, r=0.15, sampen_order=2, Q=7, lyap_maxt=10, metric='chebyshev'):
+    def __init__(self, r=0.15, sampen_order=3, Q=7, lyap_maxt=10, metric='chebyshev'):
         self.r = r
         self.sampen_order = sampen_order
         self.Q = Q
@@ -82,18 +82,18 @@ class BasicFeatures(BaseEstimator, TransformerMixin):
         check_is_fitted(self, ['names_'])
         features = np.zeros((X.shape[0], len(self.names_)))
         for i in range(X.shape[0]):
-                log2 = self._log2(X[i, :])
-                time_rev = self._time_reversibility(X[i, :])
-                #ac_zero = self._ac_zero_crossing(X[i, :])
-                #max_lyap = self._max_lyap(X[i, :], ac_zero)
-                #corr_dim = self._corr_dim(X[i, :], ac_zero)
-                sq_int = self._simple_square_integral(X[i, :])
-                sampen = self._sampen(X[i, :])
-                features[i, :] = [
-                    log2, time_rev, #ac_zero, max_lyap,
-                    #corr_dim, 
-                    sq_int, sampen
-                ]
+            log2 = self._log2(X[i, :])
+            time_rev = self._time_reversibility(X[i, :])
+            #ac_zero = self._ac_zero_crossing(X[i, :])
+            #max_lyap = self._max_lyap(X[i, :], ac_zero)
+            #corr_dim = self._corr_dim(X[i, :], ac_zero)
+            sq_int = self._simple_square_integral(X[i, :])
+            sampen = self._sampen(X[i, :])
+            features[i, :] = [
+                log2, time_rev, #ac_zero, max_lyap,
+                #corr_dim, 
+                sq_int, sampen
+            ]
         return features
 
     def fit_transform(self, X, y):
