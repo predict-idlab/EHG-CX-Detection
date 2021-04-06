@@ -11,7 +11,6 @@ from sklearn.preprocessing import RobustScaler
 
 def partition_data(directory, n_splits=5):
     files = set([x.split('.')[0] for x in os.listdir(directory)])
-    files = list(files)[:25]
     p_files, t_files, n_files = [], [], []
     for file in files:
         if file[-4] == 'n':
