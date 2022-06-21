@@ -1,7 +1,7 @@
 catboost == 0.12.2
 librosa == 0.6.0
 matplotlib == 2.1.1
-numpy == 1.13.3
+numpy == 1.22.0
 pandas == 0.23.4
 pyts == 0.8.0
 scikit_learn == 0.21.2
