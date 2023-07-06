@@ -5,7 +5,7 @@ numpy == 1.13.3
 pandas == 0.23.4
 pyts == 0.8.0
 scikit_learn == 0.21.2
-scipy == 0.19.1
+scipy == 1.10.0
 shap == 0.29.1
 tqdm == 4.19.5
 tsfresh == 0.12.0
